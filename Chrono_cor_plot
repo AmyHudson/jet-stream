@@ -1,0 +1,85 @@
+## Detrended Chronos values are correlated with Jet Stream values for various months. Their significance is plotted according to the number of years of each chronology.
+
+library(dplR)
+library(corrplot)
+library(maps)
+library(mapdata)
+library(fields)
+
+setwd("~/Desktop/ForAmy")
+  
+## Read jet stream Data for single and combined months
+
+dec_20_p <- read.table("position_dec_20CR_1930.txt", header=T)
+jan_20_p <- read.table("position_jan_20CR_1930.txt", header=T)
+feb_20_p <- read.table("position_feb_20CR_1930.txt", header=T)
+mar_20_p <- read.table("position_mar_20CR_1930.txt", header=T)
+apr_20_p <- read.table("position_apr_20CR_1930.txt", header=T)
+may_20_p <- read.table("position_may_20CR_1930.txt", header=T)
+jun_20_p <- read.table("position_jun_20CR_1930.txt", header=T)
+jul_20_p <- read.table("position_jul_20CR_1930.txt", header=T)
+aug_20_p <- read.table("position_aug_20CR_1930.txt", header=T)
+sep_20_p <- read.table("position_sep_20CR_1930.txt", header=T)
+oct_20_p <- read.table("position_oct_20CR_1930.txt", header=T)
+nov_20_p <- read.table("position_nov_20CR_1930.txt", header=T)
+
+
+JF  <- (jan_20_p+feb_20_p)/2
+AM  <- (apr_20_p+may_20_p)/2
+
+DJF <- (dec_20_p+jan_20_p+feb_20_p)/3
+JFM <- (jan_20_p+feb_20_p+mar_20_p)/3
+DJFM <- (dec_20_p+jan_20_p+feb_20_p+mar_20_p)/4
+DJFMA <- (dec_20_p+jan_20_p+feb_20_p+mar_20_p+apr_20_p)/5
+
+##Read Detrended Chronos data: 45 significant chronologies ordered west to east
+S <- read.table("sig_chronos.txt", header=T)
+rsig_std <- read.table("rsig_std.txt", header=T)
+
+## Correlate Individual Chronos Residuals with multiple Jet Stream Months
+
+for(i in 1:45){
+  
+Dec_cor <- cor(S[i], dec_20_p, use = "complete.obs", method = c("pearson"))
+Jan_cor <- cor(S[i], jan_20_p, use = "complete.obs", method = c("pearson"))
+Feb_cor <- cor(S[i], feb_20_p, use = "complete.obs", method = c("pearson"))
+Mar_cor <- cor(S[i], mar_20_p, use = "complete.obs", method = c("pearson"))
+Apr_cor <- cor(S[i], apr_20_p, use = "complete.obs", method = c("pearson"))
+
+JF_cor <- cor(S[i], JF, use = "complete.obs", method = c("pearson"))
+AM_cor <- cor(S[i], AM, use = "complete.obs", method = c("pearson"))
+DJF_cor <- cor(S[i], DJF, use = "complete.obs", method = c("pearson"))
+JFM_cor <- cor(S[i], JFM, use = "complete.obs", method = c("pearson"))
+DJFM_cor <- cor(S[i], DJFM, use = "complete.obs", method = c("pearson"))
+DJFMA_cor <- cor(S[i], DJFMA, use = "complete.obs", method = c("pearson"))
+
+## Join all month comparisons together
+M <- rbind(Dec_cor,Jan_cor,Feb_cor,Mar_cor,Apr_cor,JF_cor,AM_cor,DJF_cor,JFM_cor,DJFM_cor,DJFMA_cor) 
+
+## Shift degrees to be -180 to 0 with cbind
+SM_cor <- cbind(M[,91:180])
+
+## Change values that are not significant to NA. This is based on the N for each Chronos.
+
+SM_cor[SM_cor>(-rsig_std[1,i]) & SM_cor<rsig_std[1,i]]<-NA
+
+## Plot Correlation with image.plot
+mypath <- file.path("CorplotS5",paste("corplot_", names(S[i]), ".pdf", sep = ""))
+pdf(file=mypath)
+
+x <-seq(from = -180,to = -2,by = 2)
+
+y <- seq(1,11,by=1)
+
+ylab <- c("Dec", "Jan", "Feb", "Mar","Apr", "JF","AM","DJF","JFM","DJFM","DJFMA")
+par(mar=c(4,4,4,5))
+plot(x=0, y=1, xlim = range(x),ylim = range(y), type="n", axes=F, xlab="", ylab="")
+axis(1, at=seq(-180,-2,by=20), labels = seq(-180,-2,by=20), cex.axis=0.79)
+axis(2, at= seq(1,11, by=1),labels = ylab, las=2)
+image.plot(x,y,t(SM_cor), zlim=c(-1,1), add=T)
+title(main=names(S[i]))
+box()
+
+dev.off()
+
+}
